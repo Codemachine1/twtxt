@@ -30,20 +30,20 @@ def retrieve_status(client, source):
         response = yield from client.head(source.url)
         status = response.status
         yield from response.release()
-    except Exception as e:
-        logger.debug(e)
     #comp490
-        if e==ssl.CertificateError:
 
-            click.echo("Warning unable to validate the source: "+source.nick+"ssl certificate ")
-        elif e==aiohttp.errors.ClientOSError:
+    except ssl.CertificateError:
+        click.echo("Warning unable to validate the source: "+source.nick+"ssl certificate ")
+        sys.exit(1)
+    except aiohttp.errors.ClientOSError as e:
             errorString=str(e)
             if "[[SSL: CERTIFICATE_VERIFY_FAILED" in str(e):
                 click.echo("Warning the source: "+source.nick+" is unsafe: The ssl certificate has expired")
-                return []
+                sys.exit(1)
             elif "[SSL: EXCESSIVE_MESSAGE_SIZE]" in str(e):
-                click.echo("Warpning the source: "+source.nick+" is unsafe: source has sent an invalid response")
-    #COMP490
+                click.echo("Warning the source: "+source.nick+" is unsafe: source has sent an invalid response")
+                sys.exit(1)
+    #ENDCOMP490
     finally:
         return source, status
 
@@ -54,25 +54,27 @@ def retrieve_file(client, source, limit, cache):
     headers = {"If-Modified-Since": cache.last_modified(source.url)} if is_cached else {}
 
     try:
+        #comp490
         response = yield from client.request("get",source.url, headers=headers,allow_redirects=False)
         content = yield from response.text()
+    except ssl.CertificateError:
+            click.echo("Warning the source: "+source.nick+" is unsafe: Hostname does not match name on SSL certificate")
+            return []
+        #end comp490
     except Exception as e:
         if is_cached:
             logger.debug("{}: {} - using cached content".format(source.url, e))
             return cache.get_tweets(source.url, limit)
     #comp490
-        elif e==ssl.CertificateError:
+    except aiohttp.errors.ClientOSError as e:
 
-            click.echo("Warning the source: "+source.nick+" is unsafe: Hostname does not match name on SSL certificate")
+        if "[[SSL: CERTIFICATE_VERIFY_FAILED" in str(e):
+            click.echo("Warning the source: "+source.nick+" is unsafe: The ssl certificate has expired")
             return []
-        elif e==aiohttp.errors.ClientOSError:
-
-            if "[[SSL: CERTIFICATE_VERIFY_FAILED" in str(e):
-                click.echo("Warning the source: "+source.nick+" is unsafe: The ssl certificate has expired")
-                return []
-            elif "[SSL: EXCESSIVE_MESSAGE_SIZE]" in str(e):
-                click.echo("Warning the source: "+source.nick+" is unsafe: source has sent an invalid response")
-    #COMP490
+        elif "[SSL: EXCESSIVE_MESSAGE_SIZE]" in str(e):
+            click.echo("Warning the source: "+source.nick+" is unsafe: source has sent an invalid response")
+            return []
+    #END COMP490
         else:
             logger.debug(e)
             return []
@@ -102,7 +104,7 @@ def retrieve_file(client, source, limit, cache):
         conf.add_source(Source(source.nick,url))
         for tweet in tweets:
             cache.add_tweet(url,0,tweet)
-#comp490
+#END comp490
     elif response.status == 410 and is_cached:
         # 410 Gone:
         # The resource requested is no longer available,
@@ -150,9 +152,9 @@ def backup_get_tweets(client,sources,limit):
             click.echo("warning encountered unreadable character when getting data from source "+ source.nick+"To preven further problems please update python and all the dependiencies of this program")
             continue
     return alltweets
-
+#end comp490
 def get_remote_tweets(sources, limit=None, timeout=5.0, use_cache=True):
-    conn = aiohttp.TCPConnector(conn_timeout=timeout, use_dns_cache=True)
+    conn = aiohttp.TCPConnector(conn_timeout=timeout, use_dns_cache=True,verify_ssl=True)
     headers = generate_user_agent()
 
     with aiohttp.ClientSession(connector=conn, headers=headers) as client:
@@ -168,17 +170,15 @@ def get_remote_tweets(sources, limit=None, timeout=5.0, use_cache=True):
             except OSError as e:
                 logger.debug(e)
                 tweets = start_loop(client, sources, limit)
-    #comp490
+
         else:
             tweets = start_loop(client, sources, limit)
     #comp490
-    if tweets is None:
-        return backup_get_tweets(client,sources,limit)
-    else:
+    try:
         return tweets
-
-
-
+    except:
+        return backup_get_tweets(client,sources,limit)
+     #END comp490
 
 def get_remote_status(sources, timeout=5.0):
     conn = aiohttp.TCPConnector(conn_timeout=timeout, use_dns_cache=True)
