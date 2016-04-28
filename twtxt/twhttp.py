@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @asyncio.coroutine
 def retrieve_status(client, source):
     status = None
+    abort=False
     try:
         response = yield from client.head(source.url)
         status = response.status
@@ -33,20 +34,23 @@ def retrieve_status(client, source):
     #comp490
 
     except ssl.CertificateError:
-        click.echo("Warning unable to validate the source: "+source.nick+"ssl certificate ")
-        sys.exit(1)
+        click.echo("Warning unable to validate the source: "+source.nick+"ssl certificate, aborting program")
+        abort=True
     except aiohttp.errors.ClientOSError as e:
             errorString=str(e)
             if "[[SSL: CERTIFICATE_VERIFY_FAILED" in str(e):
-                click.echo("Warning the source: "+source.nick+" is unsafe: The ssl certificate has expired")
-                sys.exit(1)
+                click.echo("Warning the source: "+source.nick+" is unsafe: The ssl certificate has expired, aborting program")
+                abort=True
             elif "[SSL: EXCESSIVE_MESSAGE_SIZE]" in str(e):
-                click.echo("Warning the source: "+source.nick+" is unsafe: source has sent an invalid response")
-                sys.exit(1)
-    #ENDCOMP490
-    finally:
-        return source, status
+                click.echo("Warning the source: "+source.nick+" is unsafe: source has sent an invalid response, aborting program")
+                abort=True
 
+    finally:
+        if abort:
+            sys.exit(1)
+        else:
+            return source, status
+#ENDCOMP490
 
 @asyncio.coroutine
 def retrieve_file(client, source, limit, cache):
