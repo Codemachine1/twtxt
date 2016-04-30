@@ -99,6 +99,7 @@ def retrieve_file(client, source, limit, cache):
         return sorted(tweets, reverse=True)[:limit]
 #comp490
     elif response.status==301:
+        tweets=[]
         cache = Cache.discover()
         conf=Config.discover()
         tweets=cache.get_tweets(source.url)
@@ -108,6 +109,7 @@ def retrieve_file(client, source, limit, cache):
         conf.add_source(Source(source.nick,url))
         for tweet in tweets:
             cache.add_tweet(url,0,tweet)
+        return tweets
 #END comp490
     elif response.status == 410 and is_cached:
         # 410 Gone:
