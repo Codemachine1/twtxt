@@ -39,7 +39,7 @@ class MyTestCase(unittest.TestCase):
     def test_aiohttpdoesnotCrashProgramWhenSOurceCannotBeRead(self):
 
         runner = CliRunner()
-        self.assertNotEqual(runner.invoke(twtxt.cli.cli,['timeline']),None)
+        self.assertNotEqual(runner.invoke(twtxt.cli.cli,['view','http://codemachine1.github.io/twtxt.txt']),None)
 
     def test_iferroristhrownWhenConnectingToPageWithCertificateWithWrongname(self):
         config=twtxt.config.Config.discover()
@@ -52,7 +52,7 @@ class MyTestCase(unittest.TestCase):
             loop = asyncio.get_event_loop()
             testoutput=loop.run_until_complete(twtxt.twhttp.retrieve_file(client,source,30,cache))
             self.assertEquals(testoutput,[])
-    def test_iferroristhrownWhenConnectingToPageWithExpiredCertificate(self):
+    def test_iferroristhrownWhenConnectingTyoPageWithExpiredCertificate(self):
         config=twtxt.config.Config.discover()
         name="mdom"
         url="https://expired.badssl.com/"
@@ -63,17 +63,7 @@ class MyTestCase(unittest.TestCase):
             loop = asyncio.get_event_loop()
             testoutput=loop.run_until_complete(twtxt.twhttp.retrieve_file(client,source,30,cache))
             self.assertEquals(testoutput,[])
-    def test_iferroristhrownWhenConnectingTosourcethatreturnsinvalid(self):
-        config=twtxt.config.Config.discover()
-        name="mdom"
-        url="https://10000-sans.badssl.com/"
-        source=twtxt.models.Source(name,url)
-        cache=twtxt.cache.Cache.discover()
-        config.add_source(source)
-        with aiohttp.ClientSession() as client:
-            loop = asyncio.get_event_loop()
-            testoutput=loop.run_until_complete(twtxt.twhttp.retrieve_file(client,source,30,cache))
-            self.assertEquals(testoutput,[])
+
 
 
 
