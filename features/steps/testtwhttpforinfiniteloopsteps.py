@@ -12,7 +12,7 @@ from twtxt.cache import Cache
 def step_impl(context):
     context.ctx=twtxt.config.Config.discover()
     context.name="mdom"
-    context.url="https://kdave.github.io/twtxt-test.txt"
+    context.url="http://codemachine1.github.io/twtxt.txt"
     context.tweets=[]
     context.source=twtxt.models.Source(context.name,context.url)
 @when("the program tries to retrieve tweets from a remote source")

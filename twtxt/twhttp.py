@@ -152,7 +152,8 @@ def backup_get_tweets(client,sources,limit):
     alltweets=[]
     for source in sources:
         try:
-            tweets=process_sources_for_file(client,sources,limit)
+            loop = asyncio.get_event_loop()
+            tweets=loop.run_until_complete(process_sources_for_file(client,sources,limit))
             alltweets.extend(tweets)
         except ValueError:
             click.echo("warning encountered unreadable character when getting data from source "+ source.nick+"To preven further problems please update python and all the dependiencies of this program")
